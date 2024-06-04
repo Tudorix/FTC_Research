@@ -29,19 +29,21 @@
 
 package org.firstinspires.ftc.robotcontroller.external.samples;
 
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
-/*
- *  This OpMode illustrates the concept of driving an autonomous path based on Gyro (IMU) heading and encoder counts.
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+
+/**
+ *  This file illustrates the concept of driving an autonomous path based on Gyro heading and encoder counts.
  *  The code is structured as a LinearOpMode
  *
  *  The path to be followed by the robot is built from a series of drive, turn or pause steps.
@@ -49,10 +51,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
  *
  *  The code REQUIRES that you have encoders on the drive motors, otherwise you should use: RobotAutoDriveByTime;
  *
- *  This code uses the Universal IMU interface so it will work with either the BNO055, or BHI260 IMU.
+ *  This code ALSO requires that you have a BOSCH BNO055 IMU, otherwise you would use: RobotAutoDriveByEncoder;
+ *  This IMU is found in REV Control/Expansion Hubs shipped prior to July 2022, and possibly also on later models.
  *  To run as written, the Control/Expansion hub should be mounted horizontally on a flat part of the robot chassis.
- *  The REV Logo should be facing UP, and the USB port should be facing forward.
- *  If this is not the configuration of your REV Control Hub, then the code should be modified to reflect the correct orientation.
  *
  *  This sample requires that the drive Motors have been configured with names : left_drive and right_drive.
  *  It also requires that a positive power command moves both motors forward, and causes the encoders to count UP.
@@ -60,7 +61,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
  *  See the beginning of runOpMode() to set the FORWARD/REVERSE option for each motor.
  *
  *  This code uses RUN_TO_POSITION mode for driving straight, and RUN_USING_ENCODER mode for turning and holding.
- *  Note: This code implements the requirement of calling setTargetPosition() at least once before switching to RUN_TO_POSITION mode.
+ *  Note: You must call setTargetPosition() at least once before switching to RUN_TO_POSITION mode.
  *
  *  Notes:
  *
@@ -95,8 +96,10 @@ public class RobotAutoDriveByGyro_Linear extends LinearOpMode {
     /* Declare OpMode members. */
     private DcMotor         leftDrive   = null;
     private DcMotor         rightDrive  = null;
-    private IMU             imu         = null;      // Control/Expansion Hub IMU
+    private BNO055IMU       imu         = null;      // Control/Expansion Hub IMU
 
+    private double          robotHeading  = 0;
+    private double          headingOffset = 0;
     private double          headingError  = 0;
 
     // These variable are declared here (as class members) so they can be updated in various methods,
@@ -148,19 +151,11 @@ public class RobotAutoDriveByGyro_Linear extends LinearOpMode {
         leftDrive.setDirection(DcMotor.Direction.REVERSE);
         rightDrive.setDirection(DcMotor.Direction.FORWARD);
 
-        /* The next two lines define Hub orientation.
-         * The Default Orientation (shown) is when a hub is mounted horizontally with the printed logo pointing UP and the USB port pointing FORWARD.
-         *
-         * To Do:  EDIT these two lines to match YOUR mounting configuration.
-         */
-        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
-        RevHubOrientationOnRobot.UsbFacingDirection  usbDirection  = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
-        RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
-
-        // Now initialize the IMU with this mounting orientation
-        // This sample expects the IMU to be in a REV Hub and named "imu".
-        imu = hardwareMap.get(IMU.class, "imu");
-        imu.initialize(new IMU.Parameters(orientationOnRobot));
+        // define initialization values for IMU, and then initialize it.
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit            = BNO055IMU.AngleUnit.DEGREES;
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
 
         // Ensure the robot is stationary.  Reset the encoders and set the motors to BRAKE mode
         leftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -170,14 +165,14 @@ public class RobotAutoDriveByGyro_Linear extends LinearOpMode {
 
         // Wait for the game to start (Display Gyro value while waiting)
         while (opModeInInit()) {
-            telemetry.addData(">", "Robot Heading = %4.0f", getHeading());
+            telemetry.addData(">", "Robot Heading = %4.0f", getRawHeading());
             telemetry.update();
         }
 
         // Set the encoders for closed loop speed control, and reset the heading.
         leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        imu.resetYaw();
+        resetHeading();
 
         // Step through each leg of the path,
         // Notes:   Reverse movement is obtained by setting a negative distance (not speed)
@@ -213,10 +208,10 @@ public class RobotAutoDriveByGyro_Linear extends LinearOpMode {
     // **********  HIGH Level driving functions.  ********************
 
     /**
-    *  Drive in a straight line, on a fixed compass heading (angle), based on encoder counts.
+    *  Method to drive in a straight line, on a fixed compass heading (angle), based on encoder counts.
     *  Move will stop if either of these conditions occur:
     *  1) Move gets to the desired position
-    *  2) Driver stops the OpMode running.
+    *  2) Driver stops the opmode running.
     *
     * @param maxDriveSpeed MAX Speed for forward/rev motion (range 0 to +1.0) .
     * @param distance   Distance (in inches) to move from current position.  Negative distance means move backward.
@@ -228,7 +223,7 @@ public class RobotAutoDriveByGyro_Linear extends LinearOpMode {
                               double distance,
                               double heading) {
 
-        // Ensure that the OpMode is still active
+        // Ensure that the opmode is still active
         if (opModeIsActive()) {
 
             // Determine new target position, and pass to motor controller
@@ -274,13 +269,10 @@ public class RobotAutoDriveByGyro_Linear extends LinearOpMode {
     }
 
     /**
-     *  Spin on the central axis to point in a new direction.
-     *  <p>
+     *  Method to spin on central axis to point in a new direction.
      *  Move will stop if either of these conditions occur:
-     *  <p>
      *  1) Move gets to the heading (angle)
-     *  <p>
-     *  2) Driver stops the OpMode running.
+     *  2) Driver stops the opmode running.
      *
      * @param maxTurnSpeed Desired MAX speed of turn. (range 0 to +1.0)
      * @param heading Absolute Heading Angle (in Degrees) relative to last gyro reset.
@@ -313,10 +305,8 @@ public class RobotAutoDriveByGyro_Linear extends LinearOpMode {
     }
 
     /**
-     *  Obtain & hold a heading for a finite amount of time
-     *  <p>
+     *  Method to obtain & hold a heading for a finite amount of time
      *  Move will stop once the requested time has elapsed
-     *  <p>
      *  This function is useful for giving the robot a moment to stabilize it's heading between movements.
      *
      * @param maxTurnSpeed      Maximum differential turn speed (range 0 to +1.0)
@@ -352,7 +342,7 @@ public class RobotAutoDriveByGyro_Linear extends LinearOpMode {
     // **********  LOW Level driving functions.  ********************
 
     /**
-     * Use a Proportional Controller to determine how much steering correction is required.
+     * This method uses a Proportional Controller to determine how much steering correction is required.
      *
      * @param desiredHeading        The desired absolute heading (relative to last heading reset)
      * @param proportionalGain      Gain factor applied to heading error to obtain turning power.
@@ -361,8 +351,11 @@ public class RobotAutoDriveByGyro_Linear extends LinearOpMode {
     public double getSteeringCorrection(double desiredHeading, double proportionalGain) {
         targetHeading = desiredHeading;  // Save for telemetry
 
+        // Get the robot heading by applying an offset to the IMU heading
+        robotHeading = getRawHeading() - headingOffset;
+
         // Determine the heading current error
-        headingError = targetHeading - getHeading();
+        headingError = targetHeading - robotHeading;
 
         // Normalize the error to be within +/- 180 degrees
         while (headingError > 180)  headingError -= 360;
@@ -373,7 +366,7 @@ public class RobotAutoDriveByGyro_Linear extends LinearOpMode {
     }
 
     /**
-     * Take separate drive (fwd/rev) and turn (right/left) requests,
+     * This method takes separate drive (fwd/rev) and turn (right/left) requests,
      * combines them, and applies the appropriate speed commands to the left and right wheel motors.
      * @param drive forward motor speed
      * @param turn  clockwise turning motor speed.
@@ -413,17 +406,26 @@ public class RobotAutoDriveByGyro_Linear extends LinearOpMode {
             telemetry.addData("Motion", "Turning");
         }
 
-        telemetry.addData("Heading- Target : Current", "%5.2f : %5.0f", targetHeading, getHeading());
-        telemetry.addData("Error  : Steer Pwr",  "%5.1f : %5.1f", headingError, turnSpeed);
-        telemetry.addData("Wheel Speeds L : R", "%5.2f : %5.2f", leftSpeed, rightSpeed);
+        telemetry.addData("Angle Target:Current", "%5.2f:%5.0f", targetHeading, robotHeading);
+        telemetry.addData("Error:Steer",  "%5.1f:%5.1f", headingError, turnSpeed);
+        telemetry.addData("Wheel Speeds L:R.", "%5.2f : %5.2f", leftSpeed, rightSpeed);
         telemetry.update();
     }
 
     /**
-     * read the Robot heading directly from the IMU (in degrees)
+     * read the raw (un-offset Gyro heading) directly from the IMU
      */
-    public double getHeading() {
-        YawPitchRollAngles orientation = imu.getRobotYawPitchRollAngles();
-        return orientation.getYaw(AngleUnit.DEGREES);
+    public double getRawHeading() {
+        Orientation angles   = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        return angles.firstAngle;
+    }
+
+    /**
+     * Reset the "offset" heading back to zero
+     */
+    public void resetHeading() {
+        // Save a new heading offset equal to the current raw heading.
+        headingOffset = getRawHeading();
+        robotHeading = 0;
     }
 }

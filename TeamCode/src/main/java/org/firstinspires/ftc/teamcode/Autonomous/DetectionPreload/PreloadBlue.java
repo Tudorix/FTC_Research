@@ -4,14 +4,14 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.HardwareMap;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.Autonomous.AutonomousConstants;
 import org.firstinspires.ftc.teamcode.Robot;
-import org.firstinspires.ftc.teamcode.Systems.SweeperSystem;
 import org.firstinspires.ftc.teamcode.Vision.TSESystem;
 import org.firstinspires.ftc.teamcode.roadrunner.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.roadrunner.trajectorysequence.TrajectorySequence;
+import org.firstinspires.ftc.teamcode.systems.IntakeSystem;
 
 @Autonomous
 @Config
@@ -20,7 +20,7 @@ public class PreloadBlue extends LinearOpMode {
     Robot robot = null;
     SampleMecanumDrive drive = null;
     TSESystem tseDetection = null;
-    SweeperSystem sweeperSystem = null;
+    IntakeSystem intakeSystem = null;
 
     TrajectorySequence frontTraj, rightTraj, midTraj, leftTraj = null;
 
@@ -28,11 +28,8 @@ public class PreloadBlue extends LinearOpMode {
     /* Constants */
 
     public static double sidesTseDistance = 0;
-    
-    public static double displacePixel = 20;
 
     int detectionCase = 0;
-    HardwareMap hardwareMap = null;
 
     public static double fi = AutonomousConstants.tileSize*1.1;
 
@@ -45,8 +42,8 @@ public class PreloadBlue extends LinearOpMode {
             drive = new SampleMecanumDrive(hardwareMap);
 
             tseDetection = TSESystem.getInstance(hardwareMap);
-    
-            sweeperSystem = SweeperSystem.getInstance(hardwareMap);
+
+            intakeSystem = IntakeSystem.getInstance(robot);
 
             tseDetection.start("blue");
             while(!isStarted()) {
@@ -65,21 +62,36 @@ public class PreloadBlue extends LinearOpMode {
 
             rightTraj = drive.trajectorySequenceBuilder(new Pose2d(0,0, Math.toRadians(0)))
                     .turn(Math.toRadians(-45))
-                                .forward(displacePixel)
-                                .back(displacePixel)
+                    .UNSTABLE_addTemporalMarkerOffset(2,()->{
+                            intakeSystem.placePixel();
+                    })
+                    .UNSTABLE_addTemporalMarkerOffset(4,()->{
+                        intakeSystem.stop();
+                    })
+                    .waitSeconds(45)
                     .turn(Math.toRadians(90))
                     .build();
 
             leftTraj  = drive.trajectorySequenceBuilder(new Pose2d(0,0, Math.toRadians(0)))
                     .turn(Math.toRadians(45))
-                                .forward(displacePixel)
-                                .back(displacePixel)
-                    .turn(Math.toRadians(-45))
+                    .addTemporalMarker(2,()->{
+                        intakeSystem.placePixel();
+                    })
+                    .addTemporalMarker(4,()->{
+                        intakeSystem.stop();
+                    })
+                    .waitSeconds(4)
+                    .turn(Math.toRadians(-4531))
                     .build();
 
             midTraj  = drive.trajectorySequenceBuilder(new Pose2d(0,0, Math.toRadians(0)))
-                               .forward(displacePixel)
-                               .back(displacePixel)
+                    .addTemporalMarker(0,()->{
+                        intakeSystem.placePixel();
+                    })
+                    .addTemporalMarker(2,()->{
+                        intakeSystem.stop();
+                    })
+                    .waitSeconds(2)
                     .build();
 
             drive.followTrajectorySequence(frontTraj);
@@ -100,8 +112,6 @@ public class PreloadBlue extends LinearOpMode {
                     break;
 
             }
-            
-            
 
 
     }

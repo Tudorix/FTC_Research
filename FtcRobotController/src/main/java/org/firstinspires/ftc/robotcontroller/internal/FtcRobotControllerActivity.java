@@ -699,7 +699,7 @@ public class FtcRobotControllerActivity extends Activity
     if (controllerService != null) {
       callback.networkConnectionUpdate(controllerService.getNetworkConnectionStatus());
       callback.updateRobotStatus(controllerService.getRobotStatus());
-      // Only show this first-time toast on headless systems: what we have now on non-headless suffices
+      // Only show this first-time toast on headless subsystems: what we have now on non-headless suffices
       requestRobotSetup(LynxConstants.isRevControlHub()
         ? new Runnable() {
             @Override public void run() {

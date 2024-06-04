@@ -17,7 +17,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
 
 @Config
 public class   TSESystem {
-    
+
     private static TSESystem tseSystem = null;
     private boolean running = false;
     Thread IntakeSystem = null;
@@ -33,22 +33,22 @@ public class   TSESystem {
         this.camera.stopStreaming();
         this.running = false;
     }
-    
     public void start(String color){
         running = true;
+        WebcamName webcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         camera = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
         FtcDashboard.getInstance().startCameraStream(camera, 0);
-        
+    
         TeamProp_Pipeline teamProp_pipeline = new TeamProp_Pipeline(color);
         camera.setPipeline(teamProp_pipeline);
-        
+    
         camera.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
             @Override
             public void onOpened() {
                 camera.startStreaming(640 , 360, OpenCvCameraRotation.UPRIGHT);
             }
-            
+        
             @Override
             public void onError(int errorCode) {
             
@@ -91,10 +91,8 @@ public class   TSESystem {
         public TeamProp_Pipeline(String text){
             if(text.equals("blue")){
                 channel = 2;
-            }
-            
-            if(text.equals("red")){
-                channel = 1;
+            }else if(text.equals("red")){
+                channel = 0;
             }
         }
         

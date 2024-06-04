@@ -1,63 +1,58 @@
-package org.firstinspires.ftc.teamcode.Systems;
+package org.firstinspires.ftc.teamcode.systems;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.Robot;
 
-
+@Config
 public class ServoControlSystem {
+    public Servo Arm , Stopper , Plane;
     private static ServoControlSystem intakeSystem = null;
-    
-    public Servo Arm, Stopper , Plane , Sweep;
-    double ARM_IntakePosR = 0.94, ARM_OuttakePosR = 0.68;
-    double STOP_Close = 0.38, STOP_OpenIN = 0.28, STOP_OpenOUT = 0.33;
-    double SWEEP_Down = 0.6, SWEEP_Up = 0.95;
-    
+
+    double ARM_IntakePos = 0.00, ARM_OuttakePos = 0.00;
+    double STOP_IntakePos = 0.00, STOP_OuttakePos = 0.00;
     private boolean running = false;
-    
+    Thread IntakeSystem = null;
+
     private ServoControlSystem(Robot instance){
         this.Arm = instance.rotateArm;
         this.Stopper = instance.stopper;
-        this.Sweep = instance.sweepMove;
+        this.ARM_IntakePos = instance.ROTATEARM_TAKE_POSITION;
+        this.ARM_OuttakePos = instance.ROTATEARM_PLACE_POSITION;
+        this.STOP_OuttakePos = instance.STOPPER_CLOSED;
+        this.STOP_IntakePos = instance.STOPPER_OPEN;
         this.Plane = instance.plane;
+        Plane.setPosition(0);
     }
     
-    /** Stopper */
-    public void stopperOpen(){
-        Stopper.setPosition(STOP_OpenIN);
+    public void Stopper_Open(){
+        Stopper.setPosition(STOP_IntakePos);
     }
-    public void stopperClose(){
-        Stopper.setPosition(STOP_Close);
+    public void Stopper_Close(){
+        Stopper.setPosition(STOP_OuttakePos);
     }
-    public void stopperOut(){ Stopper.setPosition(STOP_OpenOUT);}
-    
-    /** Sweeper */
-    public void sweepDown(){
-        Sweep.setPosition(SWEEP_Down);
+    public void Arm_Take(){
+        Arm.setPosition(ARM_IntakePos);
     }
-    public void sweepUp(){
-        Sweep.setPosition(SWEEP_Up);
+    public void Arm_Place(){
+        Arm.setPosition(ARM_OuttakePos);
     }
-    
-    /** Arms */
-    public void rotateArmTake(){
-        Arm.setPosition(ARM_IntakePosR);
-    }
-    public void adjust(){
-        Arm.setPosition(1);
-    }
-    public void goDown(){
-        Arm.setPosition(0.92);
+    public void Launch_PLane(){
+        Plane.setPosition(0.8);
     }
     
-    public void rotateArmPlace(){
-        Arm.setPosition(ARM_OuttakePosR);
+    public void Plus_Arm(){
+        ARM_IntakePos -= 0.05;
+        ARM_OuttakePos -= 0.05;
+        Arm_Take();
     }
     
-    /** Plane */
-    public void launchPLane(){
-        Plane.setPosition(0.6);
+    public void Minus_Arm(){
+        ARM_IntakePos += 0.05;
+        ARM_OuttakePos += 0.05;
+        Arm_Place();
     }
     
     public static synchronized ServoControlSystem getInstance(HardwareMap hardwareMap){
