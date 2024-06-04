@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.systems;
+package org.firstinspires.ftc.teamcode.Systems;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -8,14 +8,14 @@ import org.firstinspires.ftc.teamcode.Robot;
 
 @Config
 public class ServoControlSystem {
-    public Servo Arm , Stopper , Plane;
     private static ServoControlSystem intakeSystem = null;
-
+    
+    public Servo Arm , Stopper , Plane;
     double ARM_IntakePos = 0.00, ARM_OuttakePos = 0.00;
     double STOP_IntakePos = 0.00, STOP_OuttakePos = 0.00;
+    
     private boolean running = false;
-    Thread IntakeSystem = null;
-
+    
     private ServoControlSystem(Robot instance){
         this.Arm = instance.rotateArm;
         this.Stopper = instance.stopper;
@@ -24,35 +24,27 @@ public class ServoControlSystem {
         this.STOP_OuttakePos = instance.STOPPER_CLOSED;
         this.STOP_IntakePos = instance.STOPPER_OPEN;
         this.Plane = instance.plane;
-        Plane.setPosition(0);
     }
     
+    //Stopper
     public void Stopper_Open(){
         Stopper.setPosition(STOP_IntakePos);
     }
     public void Stopper_Close(){
         Stopper.setPosition(STOP_OuttakePos);
     }
+    
+    //Arm
     public void Arm_Take(){
         Arm.setPosition(ARM_IntakePos);
     }
     public void Arm_Place(){
         Arm.setPosition(ARM_OuttakePos);
     }
+    
+    //Plane
     public void Launch_PLane(){
-        Plane.setPosition(0.8);
-    }
-    
-    public void Plus_Arm(){
-        ARM_IntakePos -= 0.05;
-        ARM_OuttakePos -= 0.05;
-        Arm_Take();
-    }
-    
-    public void Minus_Arm(){
-        ARM_IntakePos += 0.05;
-        ARM_OuttakePos += 0.05;
-        Arm_Place();
+        Plane.setPosition(0.6);
     }
     
     public static synchronized ServoControlSystem getInstance(HardwareMap hardwareMap){

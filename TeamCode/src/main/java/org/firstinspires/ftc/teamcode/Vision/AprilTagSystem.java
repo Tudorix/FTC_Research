@@ -39,20 +39,21 @@ public class AprilTagSystem {
     public void stop(){
         this.visionPortal.stopStreaming();
     }
+    
     public void start(){
         //INIT
         aprilTagProcessor = new AprilTagProcessor.Builder()
-                                                      .setDrawAxes(true)
-                                                      .setDrawCubeProjection(true)
-                                                      .setDrawTagID(true)
-                                                      .setDrawTagOutline(true)
-                                                      .build();
+                                    .setDrawAxes(true)
+                                    .setDrawCubeProjection(true)
+                                    .setDrawTagID(true)
+                                    .setDrawTagOutline(true)
+                                    .build();
         
         visionPortal = new VisionPortal.Builder()
-                                            .addProcessor(aprilTagProcessor)
-                                            .setCamera(hardwareMap.get(WebcamName.class , "Webcam 1"))
-                                            .setCameraResolution(new Size(640 , 360))
-                                            .build();
+                               .addProcessor(aprilTagProcessor)
+                               .setCamera(hardwareMap.get(WebcamName.class , "Webcam 1"))
+                               .setCameraResolution(new Size(640 , 360))
+                               .build();
     }
     
     public int SeeTag(){
@@ -66,7 +67,7 @@ public class AprilTagSystem {
         
         return Tag;
     }
-
+    
     /* Control intake/outtake */
     
     public static synchronized AprilTagSystem getInstance(HardwareMap hardwareMap){
