@@ -13,7 +13,6 @@ public class InputThread implements Runnable {
     private static InputThread instance = null;
 
     private String threadName;
-
     private Thread thread;
 
     private boolean running;
@@ -34,16 +33,7 @@ public class InputThread implements Runnable {
                 this.thread = new Thread(this);
                 this.running = true;
                 
-                //Slides
-                slidesSystem = SlidesSystem.getInstance(hardwareMap, telemetry);
-                
-                //Sweeper
-                sweeperSystem = SweeperSystem.getInstance(hardwareMap);
-                
-    
-    
                 this.thread.start();
-
                 return true;
             } else {
                 return false;
@@ -76,85 +66,7 @@ public class InputThread implements Runnable {
 
     @Override
     public void run() {
-        while(running){
-            if(gp2.right_bumper){
-                servoControlSystem.sweepDown();
-            }else if(gp2.left_bumper){
-                servoControlSystem.sweepUp();// Calculate max height position
-            }else if(gp2.dpad_down){
-                slidesSystem.slidesDown();
-            }else if(gp2.dpad_right){
-                slidesSystem.holdSLides();
-            }else if(gp2.dpad_up){
-                slidesSystem.slidesUp();
-            }else{
-                slidesSystem.stopPowerSlides();
-            }
     
-            if(gp2.a){
-                servoControlSystem.stopperClose();
-            }else if (gp2.b){
-                servoControlSystem.rotateArmPlace();
-            }else if(gp2.x){
-                servoControlSystem.rotateArmTake();
-            }else if (gp2.y){
-                servoControlSystem.stopperOpen();
-            }else if (gp2.right_bumper && gp2.left_bumper){
-                servoControlSystem.launchPLane();
-            }
-            
-            /*if(gp2.dpad_down){
-                slidesSystem.slideSetTarget(0);
-            }else if(gp2.dpad_right){
-                slidesSystem.slideSetTarget(3000);
-            }else if(gp2.dpad_left){
-                slidesSystem.slideSetTarget(1000);
-            }else if(gp2.dpad_up){
-                slidesSystem.slideSetTarget(2000);
-            }*/
-    
-           /* if(gp2.dpad_down){
-                servoControlSystem.stopperOpen();
-                try{
-                    Thread.sleep(1000);
-                }catch (InterruptedException e){};
-                servoControlSystem.rotateArmTake();
-                try{
-                    Thread.sleep(500);
-                }catch (InterruptedException e){};
-                slidesSystem.slideSetTarget(0);
-                servoControlSystem.sweepDown();
-            }else if(gp2.dpad_up){
-                servoControlSystem.stopperClose();
-                slidesSystem.slideSetTarget(700);// Calculate max height position
-                try{
-                    Thread.sleep(500);
-                }catch (InterruptedException e){};
-                servoControlSystem.rotateArmPlace();
-                servoControlSystem.sweepUp();
-            }else if(gp2.dpad_right){
-                servoControlSystem.stopperClose();
-                slidesSystem.slideSetTarget(1000);
-                try{
-                    Thread.sleep(500);
-                }catch (InterruptedException e){};
-                servoControlSystem.rotateArmPlace();
-                servoControlSystem.sweepUp();
-            }else if(gp2.dpad_left){
-                servoControlSystem.stopperClose();
-                slidesSystem.slideSetTarget(1300);// Calculate max height position
-                try{
-                    Thread.sleep(500);
-                }catch (InterruptedException e){};
-                servoControlSystem.rotateArmPlace();
-                servoControlSystem.sweepUp();
-            }
-            */
-            
-            
-            sweeperSystem.setSweeperPower(gp2.right_stick_x);
-            //...
-        }
     }
 
 

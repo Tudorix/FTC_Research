@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.CenterStage.Vision;
+package org.firstinspires.ftc.teamcode.Discover.Vision;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
